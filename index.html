@@ -311,6 +311,34 @@
     .banner:hover, .minor-star:hover{ transform: none; }
     .banner:hover .banner-arrow{ transform: none; }
   }
+
+  /* nudge shown only inside social-app in-app browsers */
+  .inapp-hint{
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 1rem;
+    background: rgba(13,16,36,0.97);
+    border-bottom: 1px solid var(--panel-border);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    font-size: 0.8rem;
+    line-height: 1.35;
+    color: var(--text);
+  }
+  .inapp-hint span{ flex: 1; }
+  .inapp-hint button{
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    background: none;
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+  }
 </style>
 </head>
 <body>
@@ -329,7 +357,7 @@
 
   <div class="banner-stack">
 
-    <a class="banner vmss" href="https://jasonhuang24.github.io/VMSS" target="_blank" rel="noopener">
+    <a class="banner vmss" href="https://jasonhchronicles.com/VMSS/" target="_blank" rel="noopener">
       <div class="banner-art vmss-art">
         <img src="assets/vmss.jpg" alt="VMSS ring city">
       </div>
@@ -342,7 +370,7 @@
       </div>
     </a>
 
-    <a class="banner love" href="https://jasonhuang24.github.io/the-love-equations/" target="_blank" rel="noopener">
+    <a class="banner love" href="https://jasonhchronicles.com/the-love-equations/" target="_blank" rel="noopener">
       <div class="banner-art love-art">
         <img src="assets/love-equations.jpg" alt="The Love Equations wordmark">
       </div>
@@ -463,6 +491,38 @@
   resize();
   window.addEventListener('resize', () => { resize(); if(reduceMotion) drawStatic(); });
   if(reduceMotion){ drawStatic(); } else { requestAnimationFrame(draw); }
+
+  /* ---- In-app browser handling (Instagram / Facebook / TikTok, etc.) ----
+     These apps open links in a single persistent webview with no tabs, which
+     resumes the last page you visited instead of reloading the hub. To stop
+     the hub getting "stuck" on a sub-site, push outbound links to the real
+     browser (Android), or nudge the user to open in their browser (iOS). */
+  (function(){
+    const ua = navigator.userAgent || '';
+    const inApp = /Instagram|FBAN|FBAV|FB_IAB|Line\/|Snapchat|TikTok|musical_ly|Pinterest|Twitter/i.test(ua);
+    if(!inApp) return;
+
+    if(/Android/i.test(ua)){
+      document.addEventListener('click', function(e){
+        const t = e.target;
+        if(!t || !t.closest) return;
+        const a = t.closest('a[href]');
+        if(!a) return;
+        const href = a.href;
+        if(!/^https?:\/\//i.test(href)) return;        // leave mailto: etc. alone
+        e.preventDefault();
+        const intent = 'intent://' + href.replace(/^https?:\/\//i, '') +
+          '#Intent;scheme=https;S.browser_fallback_url=' + encodeURIComponent(href) + ';end';
+        window.location.href = intent;
+      });
+    } else {
+      const bar = document.createElement('div');
+      bar.className = 'inapp-hint';
+      bar.innerHTML = '<span>Best viewed in your browser — tap the ⋯ menu, then “Open in browser.”</span><button type="button" aria-label="Dismiss">✕</button>';
+      bar.querySelector('button').addEventListener('click', function(){ bar.remove(); });
+      document.body.appendChild(bar);
+    }
+  })();
 </script>
 
 </body>
